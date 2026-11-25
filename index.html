@@ -49,6 +49,8 @@ button.g{background:#efe9fb;box-shadow:0 3px 0 #bdb0e0;color:#6a4bc4}
 const FB = 'https://qr-code-voting-32a0b-default-rtdb.asia-southeast1.firebasedatabase.app';   // เช่น https://xxx-default-rtdb.asia-southeast1.firebasedatabase.app
 const R = new URLSearchParams(location.search).get('round');
 const app = document.getElementById('app'), $ = id => document.getElementById(id);
+const SCREEN = new URLSearchParams(location.search).has('screen');
+const IN_APP = /FBAN|FBAV|Instagram|MicroMessenger|GSA\/|Line\//i.test(navigator.userAgent);  // เบราว์เซอร์ในแอป (เก็บข้อมูลไม่ถาวร)
 let token, last = '', voted = null, cfgNow = null;
 
 // ---------- popup น่ารักๆ ----------
@@ -101,6 +103,7 @@ function render(cfg) {
 }
 async function load() {
   if (FB.includes('PASTE')) return say('⚙️ ยังไม่ได้ใส่ลิงก์ Firebase\nในบรรทัด const FB ของไฟล์');
+  if (SCREEN) return screen();
   if (!R) return render(null);
   try {
     const cfg = await (await fetch(FB + '/config/rounds/r' + R + '.json')).json();
@@ -108,6 +111,26 @@ async function load() {
     if (cfg && cfg.open) voted = await (await fetch(FB + '/votes/r' + R + '/' + token + '.json')).json();  // ถามเซิร์ฟเวอร์ว่าเครื่องนี้โหวตแล้วหรือยัง
     last = sig; cfgNow = cfg; render(cfg);
   } catch (e) { say('☁️ เชื่อมต่อไม่ได้\nลองใหม่อีกครั้งนะ'); }
+}
+// โหมดฉายจอ: แสดง QR ของรอบที่เปิดอยู่อัตโนมัติ (ไม่มีข้อมูลแอดมิน)
+async function screen() {
+  document.querySelector('.sub').style.display = 'none';
+  try {
+    const all = await (await fetch(FB + '/config/rounds.json')).json() || {};
+    const k = Object.keys(all).find(x => all[x].open);
+    const sig = k ? k + all[k].openedAt + all[k].name : 'none'; if (sig === last) return; last = sig;
+    if (!k) { $('title').textContent = '✨ รอเปิดรอบโหวต ✨'; return say('🌙 ขณะนี้ยังไม่เปิดรอบโหวต'); }
+    const n = k.slice(1), u = location.origin + location.pathname + '?round=' + n + '&openExternalBrowser=1';
+    $('title').textContent = '✨ ' + (all[k].name || ('รอบ ' + n)) + ' ✨';
+    app.className = '';
+    app.innerHTML = '<div style="background:#fffaf0;border:4px solid #f5c84c;border-radius:28px;padding:18px;text-align:center"><img style="width:100%;max-width:340px" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=6&data=' + encodeURIComponent(u) + '"><div style="font-weight:700;font-size:20px;margin-top:8px">📱 สแกนด้วยกล้องมือถือเพื่อโหวต</div><div style="font-size:14px;color:#6b5a96">แตะลิงก์ที่ขึ้นมา แล้วเลือกเปิดใน Safari / Chrome</div></div>';
+  } catch (e) { say('☁️ เชื่อมต่อไม่ได้'); }
+}
+function inApp() {
+  app.className = 'msg';
+  app.innerHTML = '📱 ลิงก์นี้เปิดอยู่ในแอป<br>กรุณาเปิดด้วย <b>Safari</b> หรือ <b>Chrome</b><br>แล้วจึงโหวตได้นะ<br><br><button id="cp">📋 คัดลอกลิงก์</button>';
+  $('cp').onclick = async () => { try { await navigator.clipboard.writeText(location.href); } catch (e) {}
+    modal('📋', 'คัดลอกแล้ว', 'นำไปวางในช่องที่อยู่ของ Safari หรือ Chrome ได้เลย', [{ t: 'ตกลง' }]); };
 }
 async function vote(c) {
   if (await modal('🌟', 'ยืนยันโหวตให้', c.name + '\nโหวตแล้วเปลี่ยนไม่ได้นะ', [{ t: 'ยกเลิก', g: 1 }, { t: '⭐ ยืนยัน' }]) !== 1) return;
@@ -118,5 +141,5 @@ async function vote(c) {
     modal(voted ? '💖' : '🌙', voted ? 'โหวตไปแล้วนะ' : 'ปิดโหวตแล้ว', voted ? 'เครื่องนี้โหวตรอบนี้ไปแล้ว' : 'รอบนี้ปิดรับโหวตแล้ว', [{ t: 'ตกลง' }]);
   } catch (e) { modal('☁️', 'เชื่อมต่อไม่ได้', 'ลองกดโหวตใหม่อีกครั้งนะ', [{ t: 'ตกลง' }]); }
 }
-(async () => { token = await getToken(); load(); setInterval(load, 4000); })();
+(async () => { if (IN_APP && !SCREEN) return inApp(); token = await getToken(); load(); setInterval(load, 4000); })();
 </script></body></html>
