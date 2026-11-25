@@ -46,7 +46,7 @@ button.g{background:#efe9fb;box-shadow:0 3px 0 #bdb0e0;color:#6a4bc4}
 <div id="app" class="msg">🌟 กำลังโหลด...</div>
 <div class="ov" id="ov"><div class="md"><div class="ic" id="mi"></div><h3 id="mt"></h3><p id="mp"></p><div class="bt" id="mb"></div></div></div>
 <script>
-const FB = 'PASTE_FIREBASE_URL_HERE';   // เช่น https://xxx-default-rtdb.asia-southeast1.firebasedatabase.app
+const FB = 'https://qr-code-voting-32a0b-default-rtdb.asia-southeast1.firebasedatabase.app';   // เช่น https://xxx-default-rtdb.asia-southeast1.firebasedatabase.app
 const R = new URLSearchParams(location.search).get('round');
 const app = document.getElementById('app'), $ = id => document.getElementById(id);
 let token, last = '', voted = null, cfgNow = null;
